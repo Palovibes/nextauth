@@ -1,38 +1,32 @@
-import NextAuth from 'next-auth';
-import Providers from 'next-auth/providers';
+// pages/api/auth/[...nextauth].js
+import NextAuth from "next-auth";
+import CredentialsProvider from "next-auth/providers/credentials";
+import { sql } from '@vercel/postgres';
 
 export default NextAuth({
   providers: [
-    Providers.Credentials({
-      name: 'Credentials',
-      credentials: {
-        username: { label: "Username", type: "text" },
-        password: {  label: "Password", type: "password" }
-      },
-      authorize: async (credentials) => {
-        // Add logic to authenticate the user from the database here
-        // For now, we'll just return a dummy user
-        if (
-          credentials.username === 'user' &&
-          credentials.password === 'password'
-        ) {
-          return {
-            id: 1,
-            name: 'User',
-            email: 'user@example.com',
-          };
+    CredentialsProvider({
+      async authorize(credentials) {
+        const { rows } = await sql`SELECT * FROM users WHERE email = ${credentials.email}`;
+        const user = rows[0];
+
+        if (user && credentials.password === user.password) {
+          return { email: user.email, roleID: user.roleID };
         }
-        // Return null if user data could not be retrieved
         return null;
       },
     }),
   ],
-  // Add database configuration here
-  database: process.env.DATABASE_URL,
-  session: {
-    jwt: true,
-  },
-  jwt: {
-    secret: process.env.SECRET,
+  callbacks: {
+    async jwt({ token, user }) {
+      if (user) {
+        token.roleID = user.roleID;
+      }
+      return token;
+    },
+    async session({ session, token }) {
+      session.user.roleID = token.roleID;
+      return session;
+    },
   },
 });
