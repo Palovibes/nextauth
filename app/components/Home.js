@@ -4,7 +4,7 @@ import Link from "next/link";
 const Home = () => {
   return (
     <div>
-      <h1>Welcome to the Learning Platform</h1>
+      <h1>Test your NextAuth skills</h1>
       <Link href="/login">
         <a>Login</a>
       </Link>
